@@ -16,6 +16,8 @@ const authenticatedUser = require("./routes/user");
 const cookieParser = require('cookie-parser');
 // const projectRoutes = require("./routes/projects");
 const bidRoutes = require("./routes/bids");
+require('dotenv').config({ path: '.env.local' });
+
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -39,7 +41,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   session({
-    secret: "humanBrain",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     // store: new MongoStore({ url: 'mongodb://localhost:27017/physitask' }),
@@ -70,6 +72,8 @@ app.use(
   });
   
   mongoose
+  // .connect("mongodb+srv://shubhamsp456:mla2jD5KVDKL3CSt@cluster0.pefqi9y.mongodb.net/?retryWrites=true&w=majority", {
+
   .connect("mongodb://localhost:27017/physitask", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -87,10 +91,10 @@ app.use(
     passport.use(
       new googleStrategy(
         {
-          clientID:
-            "657627307106-r3p8vu0h96k34kpdlp54u1j6d4gqkvfv.apps.googleusercontent.com",
-          clientSecret: "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",
-          callbackURL: "http://localhost:4000/auth/google/callback",
+          clientID:process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: process.env.GOOGLE_CALLBACK_URL,
+          
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
