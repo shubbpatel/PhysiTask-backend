@@ -23,13 +23,13 @@ const ObjectId = mongoose.Types.ObjectId;
 
 const { ensureAuthenticated } = require("./middleware/middleware");
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: "https://physitask-2391d.web.app/",
 };
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://physitask-2391d.web.app",
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
@@ -70,11 +70,9 @@ app.use(
       done(err, null);
     }
   });
+  // .connect("mongodb://localhost:27017/physitask", {
   
-  mongoose
-  // .connect("mongodb+srv://shubhamsp456:mla2jD5KVDKL3CSt@cluster0.pefqi9y.mongodb.net/?retryWrites=true&w=majority", {
-
-  .connect("mongodb://localhost:27017/physitask", {
+  mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -152,7 +150,7 @@ app.get(
     const user = JSON.stringify(req.user);
     // const redirectUrl = `http://localhost:3000/projects?displayName=${user.displayName}&id=${user.id}&email=${user.email}`;
     res.cookie('user', user);
-    const redirectUrl = `http://localhost:3000?=${user}`;
+    const redirectUrl = `https://physitask-2391d.web.app?=${user}`;
     // const redirectUrl = `/login/success`;
     res.redirect(redirectUrl);
     // res.send(user);
@@ -303,6 +301,6 @@ app.get("/project/:id", async (req, res) => {
 
 
 
-app.listen("4000", () => {
+app.listen(process.env.PORT, () => {
   console.log("server is running");
 });
