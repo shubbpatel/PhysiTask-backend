@@ -1,16 +1,17 @@
 const mongoose = require("mongoose");
-const validator = require('validator');
-const cors = require('cors')
+const validator = require("validator");
 
 const signupSchema = new mongoose.Schema({
-  googleId: { type: String, required: true },
-  displayName: { type: String, required: true },
+  googleId: { type: String },
+  displayName: { type: String },
   email: { type: String, required: true },
   profileImage: {
     type: String,
-    default: null
-  }
-
+    default: null,
+  },
+  fullName: { type: String },
+  phone: { type: String },
+  password: { type: String },
 });
 
 const Signup = mongoose.model("Signup", signupSchema);

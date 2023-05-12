@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 // const signuproute = require("./routes/signupRoute");
-const authentication = require("./controllers/authentication");
+const newUserSignup = require("./routes/newUserSignUp");
 const Project = require("./models/projectSubmission");
 // const bodyParser = require("body-parser");
 const cookieSession = require("cookie-session");
@@ -13,18 +13,17 @@ const path = require("path");
 // const MongoStore = require('connect-mongo');
 const User = require("./models/signModel");
 const authenticatedUser = require("./routes/user");
-const cookieParser = require('cookie-parser');
+const cookieParser = require("cookie-parser");
+const userProfile = require('./routes/userProfile');
+require('./controllers/passport-setup')(passport);
+
 // const projectRoutes = require("./routes/projects");
 const bidRoutes = require("./routes/bids");
-require('dotenv').config({ path: '.env.local' });
-
+require("dotenv").config({ path: ".env.local" });
 
 const ObjectId = mongoose.Types.ObjectId;
 
 const { ensureAuthenticated } = require("./middleware/middleware");
-const corsOptions = {
-  origin: "https://physitask-2391d.web.app/",
-};
 
 const app = express();
 app.use(
@@ -34,7 +33,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(cors(corsOptions));
 
 app.use(express.json());
 // app.use(bodyParser.json());
@@ -49,30 +47,31 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     },
   })
-  );
-  app.use(passport.initialize());
-  app.use(passport.session());
-  // app.use("/project", projectRoutes);
-  app.use("/bid", bidRoutes);
+);
+app.use(passport.initialize());
+app.use(passport.session());
+// app.use("/project", projectRoutes);
+app.use("/bid", bidRoutes);
+app.use(newUserSignup);
+app.use(userProfile);
 
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
 
-  
-  passport.serializeUser((user, done) => {
-    done(null, user._id);
-  });
-  
-  passport.deserializeUser(async (id, done) => {
-    try {
-      const user = await User.findById(id);
-      done(null, user);
-    } catch (err) {
-      console.error(err);
-      done(err, null);
-    }
-  });
-  // .connect("mongodb://localhost:27017/physitask", {
-  
-  mongoose.connect(process.env.MONGO_URI, {
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    console.error(err);
+    done(err, null);
+  }
+});
+// .connect("mongodb://localhost:27017/physitask", {
+
+mongoose
+  .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -82,59 +81,46 @@ app.use(
   .catch((err) => {
     console.log(err);
   });
-  
-  // app.get('/signup', (req, res) => {
-    // res.send("<h1>shubham</h1> <input name='input'></input>")
-    // })
-    passport.use(
-      new googleStrategy(
-        {
-          clientID:process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: process.env.GOOGLE_CALLBACK_URL,
-          
-        },
-        async (accessToken, refreshToken, profile, done) => {
-          try {
-            // Check if user already exists
-            let user = await User.findOne({ googleId: profile.id });
-            // console.log(profile);
-            if (user) {
-              console.log("user exists");
-              return done(null, user);
-            } else {
-              // Create new user
-              const newUser = new User({
-                googleId: profile.id,
-                displayName: profile.displayName,
-                email: profile.emails[0].value,
-                profileImage: profile.photos[0].value, // add this line to get profile image
 
-              });
-              user = await newUser.save();
-              return done(null, user);
-            }
-          } catch (err) {
-            console.error(err);
-            return done(err, null);
-          }
-    
-          // const newUser = User.findOne({googleId:profile.id});
-          // if(newUser){
-          //   res.json({status:"user exists"})
-          // }else{
-          //   const saveUser = new User({
-          //       googleId: profile.id,
-          //       displayName: profile.displayName,
-          //       email: profile.emails[0].value,
-          //   })
-          //   saveUser.save();
-          // }
+// app.get('/signup', (req, res) => {
+// res.send("<h1>shubham</h1> <input name='input'></input>")
+// })
+passport.use(
+  new googleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user already exists
+        let user = await User.findOne({ googleId: profile.id });
+        // console.log(profile);
+        if (user) {
+          console.log("user exists");
+          return done(null, user);
+        } else {
+          // Create new user
+          const newUser = new User({
+            googleId: profile.id,
+            displayName: profile.displayName,
+            email: profile.emails[0].value,
+            profileImage: profile.photos[0].value, // add this line to get profile image
+          });
+          user = await newUser.save();
+          return done(null, user);
         }
-      )
-    );
-    app.post("/", (req, res) => {
-      console.log(req.body);
+      } catch (err) {
+        console.error(err);
+        return done(err, null);
+      }
+
+    }
+  )
+);
+app.post("/", (req, res) => {
+  console.log(req.body);
   res.send(req.body);
 });
 
@@ -149,7 +135,7 @@ app.get(
   (req, res) => {
     const user = JSON.stringify(req.user);
     // const redirectUrl = `http://localhost:3000/projects?displayName=${user.displayName}&id=${user.id}&email=${user.email}`;
-    res.cookie('user', user);
+    res.cookie("user", user);
     const redirectUrl = `https://physitask-2391d.web.app?=${user}`;
     // const redirectUrl = `/login/success`;
     res.redirect(redirectUrl);
@@ -157,18 +143,16 @@ app.get(
   }
 );
 
-app.get('/login/success', (req, res)=> {
+app.post('/login', passport.authenticate('local'), (req, res) => {
+  res.json(req.user);
+});
+
+app.get("/login/success", (req, res) => {
   const user = JSON.stringify(req.user);
-// if(user){
-//   res.status(200).json({
-//     success: true,
-//     message:'successfull',
-//     user:user
-//   })
-// }
-res.json(user)
-// console.log(user);
-})
+
+  res.json(user);
+});
+
 
 const requireAuth = (req, res, next) => {
   if (req.isAuthenticated()) {
@@ -177,12 +161,13 @@ const requireAuth = (req, res, next) => {
     res.redirect("/");
   }
 };
+// Server-side
 app.get("/logout", (req, res) => {
-  req.logout(()=>{
-    res.redirect('http://localhost:3000');
+  req.logout(()=> {
+    res.sendStatus(200);
   });
-
 });
+
 app.get("/dashboard", requireAuth, (req, res) => {
   res.send(`Welcome ${req.user.displayName}!`);
 });
@@ -208,16 +193,13 @@ app.post("/projectsubmission", async (req, res) => {
     } else {
       console.log("data not filled");
       res.status(400).json({ message: "Data not filled" });
-
     }
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
-
   }
   console.log(req.body);
 });
-
 
 app.get("/project", async (req, res) => {
   // const project = new Project(req.body);
@@ -245,7 +227,7 @@ app.get("/biddersprofile/:id", async (req, res) => {
 app.get("/profile/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const posts = await Project.find({userId:userId});
+    const posts = await Project.find({ userId: userId });
     res.json(posts);
   } catch (error) {
     console.error(error);
@@ -269,12 +251,11 @@ app.put("/projectupdate/:id", async (req, res) => {
 app.delete("/projectdelete/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    
+
     const project = await Project.findById(id);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
-    }else{
-
+    } else {
       await project.deleteOne();
       // res.redirect('http://localhost:3000/profile')
       res.json({ message: "Project deleted successfully" });
@@ -285,11 +266,7 @@ app.delete("/projectdelete/:id", async (req, res) => {
   }
 });
 
-
-
-
 app.get("/project/:id", async (req, res) => {
-
   try {
     const id = req.params.id;
     const projectDetails = await Project.findById(id);
@@ -298,8 +275,6 @@ app.get("/project/:id", async (req, res) => {
     console.log(error);
   }
 });
-
-
 
 app.listen(process.env.PORT, () => {
   console.log("server is running");
